@@ -145,16 +145,15 @@ bool CSVinterface::write(string dir, vector<map<string, string>>& container)
 {
 	vector<string> buffer;
 
+	vector<string> keys;
 	for (auto pairs : container.front())
 	{
-		vector<string> keys;
 		keys.push_back(pairs.first);
-
-		string temp;
-		maker(keys, temp);
-
-		buffer.push_back(temp);
 	}
+	string temp;
+	maker(keys, temp);
+
+	buffer.push_back(temp);
 
 	for (auto m : container)
 	{
@@ -162,7 +161,7 @@ bool CSVinterface::write(string dir, vector<map<string, string>>& container)
 		for (auto pairs : m)
 			values.push_back(pairs.second);
 
-		string temp;
+		temp.clear();
 		maker(values, temp);
 
 		buffer.push_back(temp);
