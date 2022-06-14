@@ -21,7 +21,7 @@ int main()
 	CSVinterface* inter = CSVinterface::getInstance();
 
 	vector<vector<string>> temp;
-	inter->read("test1.csv", temp);
+	inter->read("testFile/test1.csv", temp);
 
 	for (auto v : temp)
 	{
@@ -35,7 +35,7 @@ int main()
 	cout << endl;
 
 	vector<map<string, string>> temp2;
-	inter->read("test2.csv", temp2);
+	inter->read("testFile/test2.csv", temp2);
 
 	for (auto m : temp2)
 	{
@@ -46,8 +46,8 @@ int main()
 		cout << endl;
 	}
 
-	inter->write("test1-copy.csv", temp);
-	inter->write("test2-copy.csv", temp2);
+	inter->write("testFile/test1-copy.csv", temp);
+	inter->write("testFile/test2-copy.csv", temp2);
 
 	return 0;
 }
