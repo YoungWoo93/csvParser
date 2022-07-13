@@ -89,11 +89,11 @@ bool CSVinterface::read(string dir, vector<map<string, string>>& container)
 		vector<string> values;
 		parser(*it, values);
 
-		for (size_t i = 0; i < keys.size() - values.size(); i++)
+		for (int i = 0; i < keys.size() - values.size(); i++)
 			values.push_back("");
 
 		container.push_back(map<string, string>());
-		for (size_t i = 0; i < keys.size(); i++)
+		for (int i = 0; i < keys.size(); i++)
 			container.back()[keys[i]] = values[i];
 		
 	}
