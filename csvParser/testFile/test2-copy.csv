@@ -1,5 +1,5 @@
-age,etc,id,name,sex
-10,,1,stev,M
-11,,2,tomas,
-,,3,jessy,F
-13,,4,,F
+id,name,age,sex,etc,age,age,temp
+1,tom,11,,,,,
+2,stev,10,M,,,,
+3,jessy,,F,,,,
+4,charles,13,F,,,,

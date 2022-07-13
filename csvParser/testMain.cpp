@@ -18,36 +18,40 @@ using namespace std;
 
 int main()
 {
-	CSVinterface* inter = CSVinterface::getInstance();
+	CSV inter1, inter2;
 
-	vector<vector<string>> temp;
-	inter->read("testFile/test1.csv", temp);
+	inter1.read("testFile/test1.csv");
+	inter2.read("testFile/test2.csv");
 
-	for (auto v : temp)
+
+	for (auto it : inter1)
 	{
-		for (auto s : v)
+		for (auto item : it)
 		{
-			cout << s << "\t";
+			cout << item << "\t";
 		}
+
 		cout << endl;
 	}
-
 	cout << endl;
 
-	vector<map<string, string>> temp2;
-	inter->read("testFile/test2.csv", temp2);
+	auto temp = inter1.begin();
+	auto temp2 = inter2.data.begin();
 
-	for (auto m : temp2)
+
+	auto keys = inter2.keys();
+	for (auto k : keys)
+		cout << k << "\t";
+	cout << endl;
+
+	for (int i = 0; i < inter2.size(); i++)
 	{
-		for (auto s : m)
-		{
-			cout << "(" << s.first << ", " << s.second << ")" << "\t";
-		}
+		cout << i << ": " << inter2[i][inter2.field("name")];
 		cout << endl;
 	}
 
-	inter->write("testFile/test1-copy.csv", temp);
-	inter->write("testFile/test2-copy.csv", temp2);
+	inter1.write("testFile/test1-copy.csv");
+	inter2.write("testFile/test2-copy.csv");
 
 	return 0;
 }

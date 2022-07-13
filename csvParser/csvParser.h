@@ -1,39 +1,47 @@
 #pragma once
 
 #include <fstream>
-#include <mutex>
-#include <thread>
 
 #include <vector>
 #include <map>
+#include <algorithm>
 
-//https://readystory.tistory.com/116
-//https://www.interviewsansar.com/design-singleton-class-for-multithread-environment-with-explanation/
-//
-//
-//
 //
 using namespace std;
 
-class CSVinterface {
+class CSV {
 public:
-	static CSVinterface* getInstance();
+	CSV();
+	~CSV();
+	CSV(string dir);
 
-	~CSVinterface();
-	bool read(string dir, vector<vector<string>>& container);
-	bool read(string dir, vector<map<string, string>>& container);
+	bool read(string dir);
+	bool write(string dir);
 
-	bool write(string dir, vector<vector<string>>& container);//
-	bool write(string dir, vector<map<string, string>>& container);//
+	int field(string str);
+	const vector<string> keys();
+
+	size_t size();
+
+
+public:
+	vector<string>& operator [](const int index);
+
+	vector<vector<string>>::iterator begin();
+	vector<vector<string>>::iterator end();
+	vector<vector<string>>::reverse_iterator rbegin();
+	vector<vector<string>>::reverse_iterator rend();
+
 
 private:
-	CSVinterface();
-	bool read(string dir, vector<string>& datas);
-	bool write(string dir, vector<string>& datas);//
-	void parser(string str, vector<string>& v);
+
+	void parser(string str);
 	void maker(vector<string>& v, string& str);
 
+public:
 	string dir;
-	static CSVinterface* instance;
-	static mutex m;
+	vector<vector<string>> data;
+
+private:
+	map<string, int> index;
 };
