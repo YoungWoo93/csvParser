@@ -1,5 +1,4 @@
-id,name,age,sex,etc,age,age,temp
-1,tom,11,,,,,
-2,stev,10,M,,,,
-3,jessy,,F,,,,
-4,charles,13,F,,,,
+2,10,M,,,,,,,
+3,,F,,,,,,,
+-new-,-new-,-new-,-new-,-new-,-new-,-new-,-new-,-new-,-new-
+-new end-,-new end-,-new end-,-new end-,-new end-,-new end-,-new end-,-new end-,-new end-,-new end-
