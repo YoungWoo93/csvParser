@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <thread>
-#include <mutex>
 
 #include <deque>
 
@@ -19,16 +17,15 @@ CSV::CSV()
 {
 
 }
-CSV::CSV(string dir)
-{
+CSV::CSV(const string& dir){
 	read(dir);
 }
 
-bool CSV::read(string _dir)
+bool CSV::read(const string& _dir)
 {
 	dir = _dir;
 	data.clear();
-	index.clear();
+	keyMap.clear();
 
 	ifstream file(dir);
 
@@ -37,29 +34,15 @@ bool CSV::read(string _dir)
 
 	string temp;
 	while (getline(file, temp))
-		parser(temp);
+		CSVparser(temp, *this);
 	
 	file.close();
 
-	for (int i = 0; i < data[0].size(); i++)
-	{
-		if (index.find(data[0][i]) != index.end())
-		{
-			int count = 1;
-			string temp = data[0][i] + "(" + to_string(count++) + ")";
-
-			while(index.find(temp) != index.end())
-				temp = data[0][i] + "(" + to_string(count++) + ")";
-
-			index[temp] = i;
-		}
-		else
-			index[data[0][i]] = i;
-	}
+	keyMapSync();
 
 	return true;
 }
-bool CSV::write(string dir)
+bool CSV::write(const string& dir)
 {
 	ofstream file(dir);
 
@@ -69,7 +52,7 @@ bool CSV::write(string dir)
 	for (auto v : data)
 	{
 		string temp;
-		maker(v, temp);
+		CSVstringify(v, temp);
 
 		file << temp << endl;
 	}
@@ -79,65 +62,171 @@ bool CSV::write(string dir)
 	return true;
 }
 
-int CSV::field(string str)
-{
-	return index[str];
+size_t CSV::field(const string& str){
+	return keyMap[str];
 }
-const vector<string> CSV::keys()
-{
-	vector<pair<string, int>> keyList(index.begin(), index.end());
-	sort(keyList.begin(), keyList.end(), [](const pair<string, int>& a, const pair<string, int>& b)
-		{
-			return a.second < b.second;
-		}
-	);
-
-	vector<string> ret;
-	for (auto k : keyList)
-		ret.push_back(k.first);
-
-	return ret;
+const vector<string> CSV::keys(){
+	return data[0];
 }
-
-
-size_t CSV::size()
-{
+size_t CSV::size(){
 	return data.size();
 }
 
+void CSV::addVertical(const vector<string>& line) {
+	if (data.empty())
+		throw CSVException(2, "add vertical line to empty CSV");
+	if (!data.empty() && line.size() != data.size())
+		throw CSVException(1, "add vertical line size mismatch");
 
+	for (int i = 0; i < line.size(); i++)
+		data[i].push_back(line[i]);
 
-vector<string>& CSV::operator [](const int index)
+	keyMapSync();
+};
+void CSV::addHorizontal(const vector<string>& line) {
+	if (!data.empty() && line.size() != data.front().size())
+		throw CSVException(1, "add horizontal line size mismatch");
+
+	data.push_back(line);
+};
+void CSV::addColumn(const CSVcolumn& column) { 
+	if (!data.empty() && column.size() != data.front().size())
+		throw CSVException(1, "add column size mismatch");
+
+	data.push_back(column);
+};
+void CSV::addKey(const string& key) {
+	if (data.empty())
+		throw CSVException(2, "add key to empty CSV");
+
+	if (keyMap.find(key) != keyMap.end())
+		keyMap[key] = SIZE_MAX;
+	else
+		keyMap[key] = data.front().size();
+	
+	data.front().push_back(key);
+	for (int i = 1; i < data.size(); i++)
+		data[i].push_back("");
+};
+
+void CSV::eraseVerticalLine(const size_t index) {
+	if (index >= data.front().size())
+		throw CSVException(2, "erase vertical line index over");
+
+	for (auto iter = data.begin(); iter != data.end(); iter++)
+		iter->erase(iter->begin() + index);
+
+	keyMapSync();
+};
+void CSV::eraseHorizontalLine(const size_t index) {
+	if (index >= data.size())
+		throw CSVException(2, "erase horizontal line index over");
+
+	data.erase(data.begin() + index);
+};
+void CSV::eraseColumn(const size_t index) {
+	if(index >= data.size())
+		throw CSVException(2, "erase column index over");
+
+	data.erase(data.begin() + index);
+};
+void CSV::eraseKey(const string& key) {
+	if (keyMap.find(key) == keyMap.end())
+		throw CSVException(3, "erase not exist key");
+
+	size_t index = keyMap[key];
+
+	if (index == SIZE_MAX)
+		throw CSVException(3, "erase ambiguous key");
+
+	eraseVerticalLine(index);
+	keyMapSync();
+};
+
+void CSV::insertVerticalLine(const size_t index, const vector<string>& line) {
+	if (data.empty())
+		throw CSVException(2, "insert vertical line to empty CSV");
+	if (index > data.front().size())
+		throw CSVException(2, "insert vertical line index over");
+	if (!data.empty() && line.size() != data.size())
+		throw CSVException(1, "insert vertical line size mismatch");
+
+	for (int i = 0; i < data.size(); i++)
+		data[i].insert(data[i].begin() + index, 1, line[i]);
+
+	keyMapSync();
+};
+void CSV::insertHorizontalLine(const size_t index, const vector<string>& line) {
+	if (index > data.size())
+		throw CSVException(2, "insert hrizontal line index over");
+	if (!data.empty() && line.size() != data.front().size())
+		throw CSVException(1, "insert hrizontal line size mismatch");
+
+	data.insert(data.begin() + index, line);
+};
+void CSV::insertColumn(const size_t index, const CSVcolumn& column) {
+	if (index > data.size())
+		throw CSVException(2, "insert column index over");
+	if (!data.empty() && column.size() != data.front().size())
+		throw CSVException(1, "insert column size mismatch");
+
+	data.insert(data.begin() + index, column);
+};
+void CSV::insertKey(const size_t index, const string& key) {
+	if (data.empty())
+		throw CSVException(2, "insert key to empty CSV");
+	if (index > data.front().size())
+		throw CSVException(2, "insert key index over");
+
+	data.front().insert(data.front().begin() + index, 1, key);
+	for (int i = 1; i < data.size(); i++)
+		data[i].insert(data[i].begin() + index, 1, "");
+
+	keyMapSync();
+};
+
+vector<string>& CSV::operator [](const int keyMap)
 {
-	return data[index];
+	return data[keyMap];
 }
 
-vector<vector<string>>::iterator CSV::begin()
+CSVrow::iterator CSV::begin()
 {
 	return data.begin();
 }
-vector<vector<string>>::iterator CSV::end()
+CSVrow::iterator CSV::end()
 {
 	return data.end();
 }
-vector<vector<string>>::reverse_iterator CSV::rbegin()
+CSVrow::reverse_iterator CSV::rbegin()
 {
 	return data.rbegin();
 }
-vector<vector<string>>::reverse_iterator CSV::rend()
+CSVrow::reverse_iterator CSV::rend()
 {
 	return data.rend();
 }
 
 
 
+void CSV::keyMapSync()
+{
+	keyMap.clear();
+	
+	for (int i = 0; i < data[0].size(); i++)
+	{
+		if (keyMap.find(data[0][i]) != keyMap.end())
+			keyMap[data[0][i]] = SIZE_MAX;
+		else
+			keyMap[data[0][i]] = i;
+	}
+}
 
-
-void CSV::parser(string str)
+void CSVparser(const string& str, CSV& csv)
 {
 	string endStr = ",";
 	deque<char> dq;
-	data.push_back(vector<string>());
+	CSVcolumn data;
 
 	for (auto it = str.begin(); it < str.end(); it++)
 	{
@@ -152,9 +241,9 @@ void CSV::parser(string str)
 			{
 				if (!str.compare(it - str.begin(), endStr.length(), endStr))
 				{
-					data.back().push_back("");
+					data.push_back("");
 					if (it + 1 == str.end())
-						data.back().push_back("");
+						data.push_back("");
 
 					continue;
 				}
@@ -168,11 +257,11 @@ void CSV::parser(string str)
 			{
 				if (!str.compare(it - str.begin(), endStr.length(), endStr))
 				{
-					data.back().push_back(string(dq.begin(), dq.end()));
+					data.push_back(string(dq.begin(), dq.end()));
 					dq.clear();
 
 					if (it + 1 == str.end())
-						data.back().push_back("");
+						data.push_back("");
 
 				}
 				else
@@ -185,12 +274,12 @@ void CSV::parser(string str)
 				if (!str.compare(it - str.begin(), endStr.length(), endStr))
 				{
 					dq.pop_front();
-					data.back().push_back(string(dq.begin(), dq.end()));
+					data.push_back(string(dq.begin(), dq.end()));
 					dq.clear();
 					it++;
 
 					if (it + 1 == str.end())
-						data.back().push_back("");
+						data.push_back("");
 				}
 				else if (!str.compare(it - str.begin(), 2, "\"\""))
 				{
@@ -206,9 +295,12 @@ void CSV::parser(string str)
 	}
 
 	if (!dq.empty())
-		data.back().push_back(string(dq.begin(), dq.end()));
+		data.push_back(string(dq.begin(), dq.end()));
+
+	csv.addColumn(data);
 }
-void CSV::maker(vector<string>& v, string& str)
+
+void CSVstringify(const CSVcolumn& v, string& str)
 {
 	for (auto _str : v)
 	{
